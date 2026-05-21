@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "dev:open": "node tools/open-browser.cjs",
     "build": "next build --webpack",
-    "start": "next start --webpack",
+    "start": "next start",
     "lint": "eslint",
     "update-babylon": "node tools/update-babylon.cjs"
   },
