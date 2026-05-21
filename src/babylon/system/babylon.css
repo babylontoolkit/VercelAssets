@@ -1,0 +1,52 @@
+.page-viewer, #page-viewer, #my-page-viewer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  z-index: 1000;
+  overflow: hidden;
+  border: none;
+  outline: none;
+  color: #E0684B; /* Default Babylon Toolkit Soft Orange */
+  background-color: #2A2342; /* Default Babylon Toolkit Base Purple */
+  contain: layout style paint; /* Isolates layout, style, and paint for better performance */
+  isolation: isolate; /* Creates a new stacking context to reduce compositing overhead */
+}
+
+.div-viewer, #div-viewer, #my-div-viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  z-index: 1000;
+  overflow: hidden;
+  border: none;
+  outline: none;
+  color: #E0684B; /* Default Babylon Toolkit Soft Orange */
+  background-color: #2A2342; /* Default Babylon Toolkit Base Purple */
+  contain: layout style paint; /* Isolates layout, style, and paint for better performance */
+  isolation: isolate; /* Creates a new stacking context to reduce compositing overhead */
+}
+
+.canvas, #canvas, #my-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  z-index: 1001;
+  overflow: hidden;
+  border: none;
+  outline: none;
+  will-change: auto; /* Hints browser to optimize for potential changes */
+}
+
+.babylonUnmute, #babylonUnmuteButton, #babylonUnmuteIconBtn {
+    display: none !important;
+}

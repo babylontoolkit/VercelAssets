@@ -1,0 +1,35 @@
+{
+  "name": "next-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "dev:open": "node tools/open-browser.cjs",
+    "build": "next build --webpack",
+    "start": "next start --webpack",
+    "lint": "eslint",
+    "update-babylon": "node tools/update-babylon.cjs"
+  },
+  "dependencies": {
+    "babylonjs": "^9.9.0",
+    "babylonjs-addons": "^9.9.0",
+    "babylonjs-gui": "^9.9.0",
+    "babylonjs-inspector": "^9.9.0",
+    "babylonjs-loaders": "^9.9.0",
+    "babylonjs-materials": "^9.9.0",
+    "babylonjs-toolkit": "^9.8.0",
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
