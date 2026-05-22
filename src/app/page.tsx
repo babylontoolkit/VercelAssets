@@ -17,7 +17,6 @@ export default function Home() {
           fromApp: true,
           gameMode: 'PlayerControllerDemo',
           sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
-          projectUrl: 'https://repo.babylontoolkit.com/playground/default.playground.js',
         })
       );
     }
