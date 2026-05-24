@@ -17,7 +17,7 @@
     "babylonjs-inspector": "^9.9.0",
     "babylonjs-loaders": "^9.9.0",
     "babylonjs-materials": "^9.9.0",
-    "babylonjs-toolkit": "^9.9.9",
+    "babylonjs-toolkit": "^9.9.10",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
