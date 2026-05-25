@@ -11,7 +11,7 @@
     "update-babylon": "node tools/update-babylon.cjs"
   },
   "dependencies": {
-    "@babylonjs-toolkit/next": "^9.9.25",
+    "@babylonjs-toolkit/next": "^9.9.26",
     "@babylonjs/addons": "^9.9.1",
     "@babylonjs/core": "^9.9.1",
     "@babylonjs/gui": "^9.9.1",
