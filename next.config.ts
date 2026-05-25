@@ -118,6 +118,7 @@ const nextConfig: NextConfig = {
   // before any loader runs and replace them with inline data-URI modules that export
   // the public path strings. webpack: true is set in server-classic.ts so this runs.
   webpack(config, { webpack }) {
+    config.resolve.symlinks = false; // resolve from symlink path, not real path
     config.plugins.push(
       new webpack.NormalModuleReplacementPlugin(
         /assets[\/\\]babylon\.png$/,
