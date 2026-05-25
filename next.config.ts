@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 // ---------------------------------------------------------------------------
 // MIME type map for static assets served from /public.
@@ -77,6 +78,20 @@ function buildMediaHeaderEntries(): HeaderEntry[] {
   });
 }
 
+// All @babylonjs/* packages are pure ESM ("type": "module").
+// Same list used for serverExternalPackages, transpilePackages, and resolve.alias.
+const BABYLON_PACKAGES = [
+  "@babylonjs/core",
+  "@babylonjs/loaders",
+  "@babylonjs/gui",
+  "@babylonjs/materials",
+  "@babylonjs/serializers",
+  "@babylonjs/addons",
+  "@babylonjs/havok",
+  "@babylonjs/inspector",
+  "@babylonjs-toolkit/next",
+] as const;
+
 const nextConfig: NextConfig = {
   turbopack: {},
   // reactStrictMode: true, // Enable Strict Mode
@@ -119,6 +134,25 @@ const nextConfig: NextConfig = {
   // the public path strings. webpack: true is set in server-classic.ts so this runs.
   webpack(config, { webpack }) {
     config.resolve.symlinks = false; // resolve from symlink path, not real path
+
+    // WASM support required for @babylonjs/havok.
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
+    // Deduplicate Babylon packages — same role as Vite's resolve.dedupe.
+    // Forces all imports of @babylonjs/* to resolve to the project root's
+    // node_modules directory, preventing duplicate class instances in monorepos
+    // or when packages carry nested peer copies.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      ...Object.fromEntries(
+        BABYLON_PACKAGES
+          .filter(pkg => pkg !== "@babylonjs-toolkit/next")
+          .map(pkg => [pkg, path.resolve(process.cwd(), `node_modules/${pkg}`)])
+      ),
+    };
     config.plugins.push(
       new webpack.NormalModuleReplacementPlugin(
         /assets[\/\\]babylon\.png$/,
@@ -146,7 +180,7 @@ const nextConfig: NextConfig = {
         cacheGroups: {
           ...(splitChunks?.cacheGroups ?? {}),
           babylon: {
-            test: /[\\/]node_modules[\\/]babylonjs/,
+            test: /[\/]node_modules[\/]@?babylonjs/,
             name: "babylon",
             chunks: "all" as const,
             priority: 30,

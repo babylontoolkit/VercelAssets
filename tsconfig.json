@@ -27,15 +27,7 @@
         "name": "next"
       }
     ],
-    "types": [
-      "babylonjs",
-      "babylonjs-gui",
-      "babylonjs-addons",
-      "babylonjs-loaders",
-      "babylonjs-gltf2interface",
-      "babylonjs-materials",
-      "babylonjs-toolkit"
-    ],
+    "types": [],
     "paths": {
       "@/*": ["./src/*"]
     }
