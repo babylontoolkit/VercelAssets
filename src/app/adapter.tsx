@@ -11,7 +11,7 @@
  * the way react-router-dom does. To preserve the { fromApp, ... }
  * NavigationState shape, this adapter writes state to sessionStorage
  * via the shared NAV_STATE_STORE_KEY (defined in platform.tsx) so
- * that ApplicationRoute and BabylonSceneViewer can read it with
+ * that BabylonSceneViewer can read it with
  * readNavStateStore() regardless of which adapter is in use.
  * =================================================================
  */
@@ -30,8 +30,7 @@ export function NextNavAdapter({ children }: { children: ReactNode }) {
     (path, options) => {
       // Bridge: persist fromApp state to sessionStorage so it survives Next.js
       // App Router transitions (which don't support history state natively).
-      // Uses the shared NAV_STATE_STORE_KEY so ApplicationRoute and
-      // BabylonSceneViewer can read it with readNavStateStore().
+      // Uses the shared NAV_STATE_STORE_KEY so BabylonSceneViewer can read it with readNavStateStore().
       if (options?.state?.fromApp) {
         try { sessionStorage.setItem(NAV_STATE_STORE_KEY, JSON.stringify(options.state)); } catch { /* ignore */ }
       }
