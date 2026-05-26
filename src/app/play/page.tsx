@@ -6,9 +6,7 @@ import BabylonSceneViewer from "@/babylon/system/babylon";
 export default function Play() {
   return (
     <Suspense fallback={<DefaultBabylonPreloader />}>
-      <ApplicationRoute allowDevMode={true}>
-        <BabylonSceneViewer fullPage={true} allowQueryParams={true} enableCustomOverlay={false} />
-      </ApplicationRoute>
+      <BabylonSceneViewer fullPage={true} allowQueryParams={true} enableCustomOverlay={false} />
     </Suspense>
   );
 }
