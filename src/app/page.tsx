@@ -1,25 +1,18 @@
 'use client';
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useUnifiedNavigation } from "@/babylon/system/platform";
 
 export default function Home() {
-  const router = useRouter();
-
+  const { navigate } = useUnifiedNavigation();
   const handlePlayDemo = () => {
-    // Use native Next.js router to avoid loading Babylon runtime in the main bundle
-    router.push('/play');
-    // State is stored in sessionStorage by the NextNavAdapter on navigation
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(
-        "babylon-nav-state:/play",
-        JSON.stringify({
-          fromApp: true,
-          gameMode: 'PlayerControllerDemo',
-          sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
-        })
-      );
-    }
+    navigate('/play', {
+      state: {
+        fromApp: true,
+        gameMode: 'PlayerControllerDemo',
+        sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
+      },
+    });
   };
 
   return (
