@@ -7,11 +7,8 @@ export default function Home() {
   const { navigate } = useUnifiedNavigation();
   const handlePlayDemo = () => {
     navigate('/play', {
-      state: {
-        fromApp: true,
-        gameMode: 'PlayerControllerDemo',
-        sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
-      },
+      gameMode: 'PlayerControllerDemo',
+      sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
     });
   };
 
