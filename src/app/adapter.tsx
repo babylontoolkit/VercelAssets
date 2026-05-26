@@ -9,41 +9,17 @@
  *
  * Note: Next.js App Router does not support history state natively
  * the way react-router-dom does. To preserve the { fromApp, ... }
- * NavigationState shape, this adapter stashes state in
- * sessionStorage keyed by pathname and rehydrates it on read.
+ * NavigationState shape, this adapter writes state to sessionStorage
+ * via the shared NAV_STATE_STORE_KEY (defined in platform.tsx) so
+ * that ApplicationRoute and BabylonSceneViewer can read it with
+ * readNavStateStore() regardless of which adapter is in use.
  * =================================================================
  */
 
 import { createElement, ReactNode, useCallback, useEffect, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { NavigationProvider, UnifiedNavigateFunction, LocationState, NavigationState } from "../babylon/system/platform";
+import { NavigationProvider, UnifiedNavigateFunction, LocationState, NAV_STATE_STORE_KEY, readNavStateStore } from "../babylon/system/platform";
 import GameManager from "../babylon/globals";
-
-const STATE_KEY_PREFIX = "babylon-nav-state:";
-
-function writeState(path: string, state: NavigationState | undefined) {
-  if (typeof window === "undefined") return;
-  try {
-    const key = STATE_KEY_PREFIX + path.split("?")[0];
-    if (state) {
-      window.sessionStorage.setItem(key, JSON.stringify(state));
-    } else {
-      window.sessionStorage.removeItem(key);
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-function readState(path: string): NavigationState | undefined {
-  if (typeof window === "undefined") return undefined;
-  try {
-    const raw = window.sessionStorage.getItem(STATE_KEY_PREFIX + path);
-    return raw ? (JSON.parse(raw) as NavigationState) : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 export function NextNavAdapter({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -52,7 +28,13 @@ export function NextNavAdapter({ children }: { children: ReactNode }) {
 
   const navigate: UnifiedNavigateFunction = useCallback(
     (path, options) => {
-      writeState(path, options?.state);
+      // Bridge: persist fromApp state to sessionStorage so it survives Next.js
+      // App Router transitions (which don't support history state natively).
+      // Uses the shared NAV_STATE_STORE_KEY so ApplicationRoute and
+      // BabylonSceneViewer can read it with readNavStateStore().
+      if (options?.state?.fromApp) {
+        try { sessionStorage.setItem(NAV_STATE_STORE_KEY, JSON.stringify(options.state)); } catch { /* ignore */ }
+      }
       if (options?.replace) {
         router.replace(path);
       } else {
@@ -79,7 +61,7 @@ export function NextNavAdapter({ children }: { children: ReactNode }) {
     () => ({
       pathname,
       search,
-      state: readState(pathname),
+      state: readNavStateStore(),
     }),
     [pathname, search]
   );
