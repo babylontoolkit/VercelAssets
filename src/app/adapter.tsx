@@ -31,7 +31,15 @@ export function NextNavAdapter({ children }: { children: ReactNode }) {
       // App Router transitions (which don't support history state natively).
       // Uses the shared NAV_STATE_STORE_KEY so BabylonSceneViewer can read it with readNavStateStore().
       if (state) {
-        try { sessionStorage.setItem(NAV_STATE_STORE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+        // Strip reload flag from stored state so it doesn't re-trigger on restore.
+        const { reloadPage, ...storedState } = state;
+        try { sessionStorage.setItem(NAV_STATE_STORE_KEY, JSON.stringify(storedState)); } catch { /* ignore */ }
+        // Force a full DOM reload to release all resources from the previous page
+        // and give the new scene a fresh slate.
+        if (reloadPage) {
+          window.location.href = path;
+          return;
+        }
       }
       router.push(path);
     },
