@@ -9,6 +9,7 @@ export default function Home() {
     navigate('/play', {
       gameMode: 'PlayerControllerDemo',
       sceneUrl: 'https://repo.babylontoolkit.com/playground/samplescene.gltf',
+      reloadPage: (process.env.NODE_ENV !== "development") // Note: In development mode, we want to preserve the state of hot-reloading, so we won't reload the page. In production, we can reload to ensure a clean state.
     });
   };
 
