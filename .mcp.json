@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kie-image": {
+      "command": "python3",
+      "args": ["tools/kie_image_server.py"]
+    }
+  }
+}

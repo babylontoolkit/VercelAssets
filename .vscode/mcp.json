@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "kie-image": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${workspaceFolder}/tools/kie_image_server.py"]
+    }
+  }
+}
