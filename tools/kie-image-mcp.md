@@ -9,9 +9,9 @@ paths, so it survives being cloned from the starter template onto any machine.
 
 | File | Purpose |
 |------|---------|
-| `tools/kie_image_server.py` | The MCP server (Python stdlib only — no `pip install`). |
-| `.mcp.json` | Claude Code project config → `python3 tools/kie_image_server.py`. |
-| `.vscode/mcp.json` | VS Code Copilot config → `${workspaceFolder}/tools/kie_image_server.py`. |
+| `tools/kie-image-server.py` | The MCP server (Python stdlib only — no `pip install`). |
+| `.mcp.json` | Claude Code project config → `python3 tools/kie-image-server.py`. |
+| `.vscode/mcp.json` | VS Code Copilot config → `${workspaceFolder}/tools/kie-image-server.py`. |
 | `.env` | KIE_KEY=your-api-key; (gitignore). |
 
 ## Setup on install

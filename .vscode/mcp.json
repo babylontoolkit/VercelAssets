@@ -3,7 +3,12 @@
     "kie-image": {
       "type": "stdio",
       "command": "python3",
-      "args": ["${workspaceFolder}/tools/kie_image_server.py"]
+      "args": ["${workspaceFolder}/tools/kie-image-server.py"]
+    },
+    "kie-video": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["${workspaceFolder}/tools/kie-video-server.py"]
     }
   }
 }

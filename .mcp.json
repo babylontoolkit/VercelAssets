@@ -2,7 +2,11 @@
   "mcpServers": {
     "kie-image": {
       "command": "python3",
-      "args": ["tools/kie_image_server.py"]
+      "args": ["tools/kie-image-server.py"]
+    },
+    "kie-video": {
+      "command": "python3",
+      "args": ["tools/kie-video-server.py"]
     }
   }
 }

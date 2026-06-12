@@ -31,6 +31,7 @@ UA = "Mozilla/5.0 (compatible; kie-image-mcp/1.0)"
 SERVER_NAME = "kie-image"
 SERVER_VERSION = "1.0.0"
 DEFAULT_PROTOCOL = "2025-06-18"
+DEFAULT_MODEL = "nano-banana-2"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -110,7 +111,7 @@ def generate_image(args):
     image_input = [_upload(os.path.expanduser(p)) for p in refs]
 
     task = _req(f"{API}/api/v1/jobs/createTask", "POST", {
-        "model": "nano-banana-2",
+        "model": DEFAULT_MODEL,
         "input": {
             "prompt": prompt,
             "image_input": image_input,
