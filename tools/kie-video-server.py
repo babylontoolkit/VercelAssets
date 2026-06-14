@@ -12,7 +12,7 @@ the same KIE_KEY. Veo 3.1 uses dedicated endpoints rather than the generic
   - create:  POST https://api.kie.ai/api/v1/veo/generate
   - poll:    GET  https://api.kie.ai/api/v1/veo/record-info?taskId=...
 
-Tool: generate_veo_video
+Tool: generate_video
   - prompt (str, required): text description of the video / motion.
   - out_path (str, required): path to save the resulting video (.mp4).
   - image_paths (list[str], optional): local image files for image-to-video.
@@ -111,7 +111,7 @@ def _upload(path):
     return url
 
 
-def generate_veo_video(args):
+def generate_video(args):
     prompt = args["prompt"]
     out_path = os.path.expanduser(args["out_path"])
     imgs = args.get("image_paths") or []
@@ -179,7 +179,7 @@ def generate_veo_video(args):
 
 
 TOOLS = [{
-    "name": "generate_veo_video",
+    "name": "generate_video",
     "description": (
         "Generate a video with kie.ai Google Veo 3.1 and save it to a local "
         "path. Optionally pass local image files (image_paths) for "
@@ -235,12 +235,12 @@ def handle(req):
     elif method == "tools/call":
         name = params.get("name")
         args = params.get("arguments") or {}
-        if name != "generate_veo_video":
+        if name != "generate_video":
             send({"jsonrpc": "2.0", "id": rid, "result": {
                 "content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}})
             return
         try:
-            text = generate_veo_video(args)
+            text = generate_video(args)
             send({"jsonrpc": "2.0", "id": rid, "result": {"content": [{"type": "text", "text": text}]}})
         except Exception as e:
             log("ERROR:", repr(e))
