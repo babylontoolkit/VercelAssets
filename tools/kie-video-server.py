@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
 """
 Zero-dependency MCP server (raw JSON-RPC 2.0 over stdio) exposing kie.ai
-Kling 3.0 video generation. Works on Python 3.9+ (Windows, macOS, Linux)
-with only the stdlib, so it runs identically from Claude Code and VS Code Copilot.
+Google **Veo 3.1** video generation. Works on Python 3.9+ (Windows, macOS,
+Linux) with only the stdlib, so it runs identically from Claude Code and VS Code
+Copilot.
 
-This server is project-local (lives in <project>/tools). Configs that point at
-it (.mcp.json, .vscode/mcp.json) use relative paths so they are portable across
-machines when this project is cloned from a starter template.
+This server is project-local (lives in <project>/tools). It is a companion to
+`kie-video-server.py` (Kling) and `kie-image-server.py` (Nano Banana) and shares
+the same KIE_KEY. Veo 3.1 uses dedicated endpoints rather than the generic
+/jobs API:
+  - create:  POST https://api.kie.ai/api/v1/veo/generate
+  - poll:    GET  https://api.kie.ai/api/v1/veo/record-info?taskId=...
 
-Tool: generate_video
-  - prompt (str, required)
-  - out_path (str, required): path to save the resulting video (.mp4)
-  - image_paths (list[str], optional): local image files used as first / last
-    frame guidance (uploaded to kie.ai, passed as image_urls for image-to-video).
-    1 image = first frame, 2 images = first and last frame.
-  - duration (str, default "5"): total seconds, "3"..."15"
-  - aspect_ratio (str, default "16:9"): 16:9 | 9:16 | 1:1 (auto-adapts if images given)
-  - mode (str, default "pro"): std | pro | 4K (output resolution tier)
-  - sound (bool, default False): generate audio with the video
-  - model (str, default "kling-3.0/video"): kie.ai video model id
+Tool: generate_veo_video
+  - prompt (str, required): text description of the video / motion.
+  - out_path (str, required): path to save the resulting video (.mp4).
+  - image_paths (list[str], optional): local image files for image-to-video.
+      * 1 image  -> the video animates around that image
+      * 2 images -> first image = first frame, second = last frame (transition)
+      * up to 3 images with generation_type=REFERENCE_2_VIDEO (fast/lite only)
+  - model (str, default "veo3_fast"): veo3 | veo3_fast | veo3_lite
+  - aspect_ratio (str, default "16:9"): 16:9 | 9:16 | Auto
+  - resolution (str, default "720p"): 720p | 1080p | 4k (4k costs extra credits)
+  - duration (int, default 8): 4 | 6 | 8 seconds
+  - generation_type (str, optional): TEXT_2_VIDEO |
+      FIRST_AND_LAST_FRAMES_2_VIDEO | REFERENCE_2_VIDEO (auto-detected if omitted)
+  - watermark (str, optional): watermark text to burn into the video.
+  - enable_translation (bool, default True): translate prompt to English first.
 
 API key resolution order:
   1. $KIE_KEY / $KIE_AI_API_KEY environment variables
@@ -30,16 +38,16 @@ import sys, os, json, time, base64, mimetypes, urllib.request
 
 API = "https://api.kie.ai"
 UPLOAD = "https://kieai.redpandaai.co"
-UA = "Mozilla/5.0 (compatible; kie-video-mcp/1.0)"
-SERVER_NAME = "kie-video"
+UA = "Mozilla/5.0 (compatible; kie-veo-mcp/1.0)"
+SERVER_NAME = "kie-veo"
 SERVER_VERSION = "1.0.0"
 DEFAULT_PROTOCOL = "2025-06-18"
-DEFAULT_MODEL = "kling-3.0/video"
+DEFAULT_MODEL = "veo3_fast"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def log(*a):
-    print("[kie-video]", *a, file=sys.stderr, flush=True)
+    print("[kie-veo]", *a, file=sys.stderr, flush=True)
 
 
 def _parse_env_file(path):
@@ -93,7 +101,7 @@ def _upload(path):
     b64 = base64.b64encode(raw).decode()
     res = _req(f"{UPLOAD}/api/file-base64-upload", "POST", {
         "base64Data": f"data:{mime};base64,{b64}",
-        "uploadPath": "mcp-video",
+        "uploadPath": "mcp-veo",
         "fileName": os.path.basename(path),
     })
     url = (res.get("data") or {}).get("downloadUrl")
@@ -103,60 +111,62 @@ def _upload(path):
     return url
 
 
-def generate_video(args):
+def generate_veo_video(args):
     prompt = args["prompt"]
     out_path = os.path.expanduser(args["out_path"])
     imgs = args.get("image_paths") or []
-    duration = str(args.get("duration", "5"))
-    aspect = args.get("aspect_ratio", "16:9")
-    mode = args.get("mode", "pro")
-    sound = bool(args.get("sound", False))
     model = args.get("model", DEFAULT_MODEL)
+    aspect = args.get("aspect_ratio", "16:9")
+    resolution = args.get("resolution", "720p")
+    duration = int(args.get("duration", 8))
+    gen_type = args.get("generation_type")
+    watermark = args.get("watermark")
+    enable_translation = bool(args.get("enable_translation", True))
 
     image_urls = [_upload(os.path.expanduser(p)) for p in imgs]
 
+    # Veo 3.1 uses a flat request body (not the {model, input} jobs wrapper).
     payload = {
         "prompt": prompt,
-        "duration": duration,
+        "model": model,
         "aspect_ratio": aspect,
-        "mode": mode,
-        "sound": sound,
+        "resolution": resolution,
+        "duration": duration,
+        "enableTranslation": enable_translation,
     }
     if image_urls:
-        payload["image_urls"] = image_urls
+        payload["imageUrls"] = image_urls
+    if gen_type:
+        payload["generationType"] = gen_type
+    if watermark:
+        payload["watermark"] = watermark
 
-    task = _req(f"{API}/api/v1/jobs/createTask", "POST", {
-        "model": model,
-        "input": payload,
-    })
+    task = _req(f"{API}/api/v1/veo/generate", "POST", payload)
+    if task.get("code") != 200:
+        raise RuntimeError(f"generate failed: {json.dumps(task)[:300]}")
     tid = (task.get("data") or {}).get("taskId")
     if not tid:
-        raise RuntimeError(f"createTask failed: {json.dumps(task)[:300]}")
+        raise RuntimeError(f"generate failed (no taskId): {json.dumps(task)[:300]}")
     log("task", tid, "submitted; polling")
 
     result_url = None
     deadline = time.time() + 900  # video renders are slower than images
     while time.time() < deadline:
         time.sleep(10)
-        info = _req(f"{API}/api/v1/jobs/recordInfo?taskId={tid}")
+        info = _req(f"{API}/api/v1/veo/record-info?taskId={tid}")
         d = info.get("data") or {}
-        state = d.get("state") or d.get("status")
-        log("state:", state)
-        if state in ("success", "completed") or d.get("successFlag") == 1:
-            rj = d.get("resultJson") or d.get("response")
-            urls = None
-            if isinstance(rj, str) and rj:
-                try:
-                    urls = json.loads(rj).get("resultUrls")
-                except Exception:
-                    pass
-            urls = urls or d.get("resultUrls")
+        flag = d.get("successFlag")
+        log("successFlag:", flag)
+        if flag == 1:
+            resp = d.get("response") or {}
+            urls = resp.get("resultUrls") or resp.get("fullResultUrls")
             if not urls:
                 raise RuntimeError(f"succeeded but no result url: {json.dumps(info)[:300]}")
             result_url = urls[0]
             break
-        if state in ("fail", "failed") or d.get("successFlag") in (2, 3):
-            raise RuntimeError(f"generation failed: {json.dumps(info)[:300]}")
+        if flag in (2, 3):
+            msg = d.get("errorMessage") or d.get("msg") or json.dumps(info)[:300]
+            raise RuntimeError(f"generation failed (flag={flag}): {msg}")
     if not result_url:
         raise RuntimeError("timed out waiting for result (900s)")
 
@@ -165,15 +175,16 @@ def generate_video(args):
     with urllib.request.urlopen(req, timeout=300) as r, open(out_path, "wb") as f:
         f.write(r.read())
     log("saved ->", out_path)
-    return f"Video generated and saved to {out_path}\nSource URL (expires ~3 days): {result_url}"
+    return f"Veo 3.1 video generated and saved to {out_path}\nSource URL (expires ~14 days): {result_url}"
 
 
 TOOLS = [{
-    "name": "generate_video",
+    "name": "generate_veo_video",
     "description": (
-        "Generate a video with kie.ai Kling 3.0 and save it to a local path. "
-        "Optionally pass local image files (image_paths) for image-to-video: "
-        "1 image = first frame, 2 images = first and last frame."
+        "Generate a video with kie.ai Google Veo 3.1 and save it to a local "
+        "path. Optionally pass local image files (image_paths) for "
+        "image-to-video: 1 image animates around it, 2 images = first + last "
+        "frame transition, up to 3 images with generation_type=REFERENCE_2_VIDEO."
     ),
     "inputSchema": {
         "type": "object",
@@ -182,13 +193,19 @@ TOOLS = [{
             "out_path": {"type": "string", "description": "Path to save the resulting video (.mp4)."},
             "image_paths": {
                 "type": "array", "items": {"type": "string"},
-                "description": "Optional local image paths for image-to-video (1 = first frame, 2 = first+last frame).",
+                "description": "Optional local image paths. 1 = animate around image, 2 = first+last frame, up to 3 = reference (fast/lite).",
             },
-            "duration": {"type": "string", "description": "Total seconds, '3'..'15'. Default '5'."},
-            "aspect_ratio": {"type": "string", "enum": ["16:9", "9:16", "1:1"], "description": "Default 16:9 (auto-adapts if images given)."},
-            "mode": {"type": "string", "enum": ["std", "pro", "4K"], "description": "Resolution tier. Default pro."},
-            "sound": {"type": "boolean", "description": "Generate audio with the video. Default false."},
-            "model": {"type": "string", "description": "kie.ai video model id. Default kling-3.0/video."},
+            "model": {"type": "string", "enum": ["veo3", "veo3_fast", "veo3_lite"], "description": "Veo 3.1 model. Default veo3_fast (veo3 = highest quality)."},
+            "aspect_ratio": {"type": "string", "enum": ["16:9", "9:16", "Auto"], "description": "Aspect ratio. Default 16:9."},
+            "resolution": {"type": "string", "enum": ["720p", "1080p", "4k"], "description": "Output resolution. Default 720p (4k costs extra credits)."},
+            "duration": {"type": "integer", "enum": [4, 6, 8], "description": "Video length in seconds. Default 8."},
+            "generation_type": {
+                "type": "string",
+                "enum": ["TEXT_2_VIDEO", "FIRST_AND_LAST_FRAMES_2_VIDEO", "REFERENCE_2_VIDEO"],
+                "description": "Optional generation mode. Auto-detected from image_paths if omitted.",
+            },
+            "watermark": {"type": "string", "description": "Optional watermark text to burn into the video."},
+            "enable_translation": {"type": "boolean", "description": "Translate prompt to English before generating. Default true."},
         },
         "required": ["prompt", "out_path"],
     },
@@ -218,12 +235,12 @@ def handle(req):
     elif method == "tools/call":
         name = params.get("name")
         args = params.get("arguments") or {}
-        if name != "generate_video":
+        if name != "generate_veo_video":
             send({"jsonrpc": "2.0", "id": rid, "result": {
                 "content": [{"type": "text", "text": f"Unknown tool: {name}"}], "isError": True}})
             return
         try:
-            text = generate_video(args)
+            text = generate_veo_video(args)
             send({"jsonrpc": "2.0", "id": rid, "result": {"content": [{"type": "text", "text": text}]}})
         except Exception as e:
             log("ERROR:", repr(e))
