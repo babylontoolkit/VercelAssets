@@ -7,6 +7,10 @@
     "kie-video": {
       "command": "python3",
       "args": ["tools/kie-video-server.py"]
+    },
+    "kie-google": {
+      "command": "python3",
+      "args": ["tools/kie-google-server.py"]
     }
   }
 }

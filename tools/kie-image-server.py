@@ -13,9 +13,43 @@ Tool: generate_image
   - out_path (str, required): path to save the resulting image
   - reference_paths (list[str], optional): local image files to feed as
     references (uploaded to kie.ai, used as image_input for compositing/editing)
+  - model (str, default "nano-banana-2"): the kie.ai image model to use
   - aspect_ratio (str, default "16:9")
   - resolution (str, default "2K"): 1K | 2K | 4K
   - output_format (str, default "jpg"): jpg | png
+
+Available models (pass exact slug as "model"):
+
+  Google / Nano Banana:
+    nano-banana-2              Default. Text-to-image, up to 14 reference images
+    nano-banana-pro            Pro image-to-image, up to 8 reference images
+    google/nano-banana-edit    Image editing with prompt + reference images
+    google/imagen4-fast        Google Imagen 4 Fast
+    google/imagen4             Google Imagen 4
+    google/imagen4-ultra       Google Imagen 4 Ultra (highest quality)
+
+  Seedream (ByteDance):
+    bytedance/seedream                  Seedream 3.0
+    bytedance/seedream-v4-text-to-image Seedream 4.0
+    seedream/4.5-text-to-image          Seedream 4.5
+    seedream/5-lite-text-to-image       Seedream 5.0 Lite
+
+  Flux-2:
+    flux-2/flex-text-to-image    Flux-2 text-to-image
+    flux-2/flex-image-to-image   Flux-2 image-to-image
+    flux-2/pro-text-to-image     Flux-2 Pro text-to-image
+    flux-2/pro-image-to-image    Flux-2 Pro image-to-image (up to 8 ref images)
+
+  Other:
+    z-image                      Z-Image photorealistic
+    grok-imagine/text-to-image   Grok Imagine text-to-image
+    grok-imagine/image-to-image  Grok Imagine image-to-image
+    qwen/text-to-image           Qwen text-to-image
+    qwen/image-to-image          Qwen image-to-image
+
+  Note: all models use the same /api/v1/jobs/createTask endpoint. Some models
+  have unique input parameters (e.g. image_size, guidance_scale) that are not
+  exposed by this server's fixed input schema — they will use model defaults.
 
 API key resolution order:
   1. $KIE_KEY / $KIE_AI_API_KEY environment variables
@@ -104,6 +138,7 @@ def generate_image(args):
     prompt = args["prompt"]
     out_path = os.path.expanduser(args["out_path"])
     refs = args.get("reference_paths") or []
+    model = args.get("model", DEFAULT_MODEL)
     aspect = args.get("aspect_ratio", "16:9")
     resolution = args.get("resolution", "2K")
     out_format = args.get("output_format", "jpg")
@@ -111,7 +146,7 @@ def generate_image(args):
     image_input = [_upload(os.path.expanduser(p)) for p in refs]
 
     task = _req(f"{API}/api/v1/jobs/createTask", "POST", {
-        "model": DEFAULT_MODEL,
+        "model": model,
         "input": {
             "prompt": prompt,
             "image_input": image_input,
@@ -174,6 +209,7 @@ TOOLS = [{
                 "type": "array", "items": {"type": "string"},
                 "description": "Optional local image file paths to use as references (up to 14).",
             },
+            "model": {"type": "string", "description": "kie.ai image model to use. Default nano-banana-2."},
             "aspect_ratio": {"type": "string", "description": "e.g. 16:9, 1:1, 4:3, 9:16. Default 16:9."},
             "resolution": {"type": "string", "enum": ["1K", "2K", "4K"], "description": "Default 2K."},
             "output_format": {"type": "string", "enum": ["jpg", "png"], "description": "Default jpg."},
