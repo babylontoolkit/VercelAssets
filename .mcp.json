@@ -1,16 +1,16 @@
 {
   "mcpServers": {
     "kie-image": {
-      "command": "python3",
-      "args": ["tools/kie-image-server.py"]
+      "command": "kie-image-mcp",
+      "args": ["image"]
     },
     "kie-video": {
-      "command": "python3",
-      "args": ["tools/kie-video-server.py"]
+      "command": "kie-image-mcp",
+      "args": ["video"]
     },
     "kie-google": {
-      "command": "python3",
-      "args": ["tools/kie-google-server.py"]
+      "command": "kie-image-mcp",
+      "args": ["google"]
     }
   }
 }
