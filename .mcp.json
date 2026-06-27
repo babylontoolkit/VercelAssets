@@ -1,15 +1,15 @@
 {
   "mcpServers": {
     "kie-image": {
-      "command": "kie-image-mcp",
+      "command": "node_modules/.bin/kie-image-mcp",
       "args": ["image"]
     },
     "kie-video": {
-      "command": "kie-image-mcp",
+      "command": "node_modules/.bin/kie-image-mcp",
       "args": ["video"]
     },
     "kie-google": {
-      "command": "kie-image-mcp",
+      "command": "node_modules/.bin/kie-image-mcp",
       "args": ["google"]
     }
   }
