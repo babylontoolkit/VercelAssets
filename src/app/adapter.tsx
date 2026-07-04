@@ -18,7 +18,6 @@
 import { createElement, ReactNode, useCallback, useEffect, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { NavigationProvider, UnifiedNavigateFunction, LocationState, NAV_STATE_STORE_KEY, readNavStateStore } from "../babylon/system/platform";
-import GameManager from "../babylon/globals";
 
 export function NextNavAdapter({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -46,13 +45,26 @@ export function NextNavAdapter({ children }: { children: ReactNode }) {
     [router]
   );
 
-  // Note: Register the navigation hook globally so GameManager.NavigateTo works on
-  // every page, even before the Babylon runtime has initialized. NextNavAdapter
-  // wraps the whole app (in app/layout) and already owns the navigate function.
+  // Note: Register the navigation hook on the game manager so GameManager.NavigateTo
+  // works from game code. GameManager is imported lazily and only on the /play route:
+  // a static (or unconditional dynamic) import would download the entire Babylon
+  // runtime bundle on the landing/auth pages (globals.ts imports @babylonjs/*), and
+  // GameManager.NavigateTo is only ever called by game code, which exists only on
+  // /play — where the Babylon bundle is already loading.
+  const isPlayRoute = pathname.startsWith("/play");
   useEffect(() => {
-    GameManager.SetReactNavigationHook(navigate);
-    return () => GameManager.DeleteReactNavigationHook();
-  }, [navigate]);
+    if (!isPlayRoute) return;
+    let disposed = false;
+    void import("../babylon/globals").then(({ default: GameManager }) => {
+      if (!disposed) GameManager.SetReactNavigationHook(navigate);
+    });
+    return () => {
+      disposed = true;
+      void import("../babylon/globals").then(({ default: GameManager }) => {
+        GameManager.DeleteReactNavigationHook();
+      });
+    };
+  }, [navigate, isPlayRoute]);
 
   const search = useMemo(() => {
     const s = searchParams?.toString() ?? "";
