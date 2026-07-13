@@ -74,11 +74,11 @@ async function main() {
   fs.rmSync(gitModulePath, { recursive: true, force: true });
   fs.rmSync(SUBMODULE_PATH, { recursive: true, force: true });
 
-  console.log("\nInstalling clean Babylon Toolkit React Framework submodule...\n");
+  // console.log("\nInstalling clean Babylon Toolkit React Framework submodule...\n");
 
-  run("git", ["submodule", "add", SUBMODULE_URL, SUBMODULE_PATH]);
-  run("git", ["add", ".gitmodules", SUBMODULE_PATH]);
-  run("git", ["commit", "-m", "Update Babylon Toolkit React Framework submodule"]);
+  // run("git", ["submodule", "add", SUBMODULE_URL, SUBMODULE_PATH]);
+  // run("git", ["add", ".gitmodules", SUBMODULE_PATH]);
+  // run("git", ["commit", "-m", "Update Babylon Toolkit React Framework submodule"]);
 
   console.log("\nBabylon Toolkit React Framework submodule updated.");
 }
