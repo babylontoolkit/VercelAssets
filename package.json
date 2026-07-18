@@ -36,7 +36,6 @@
     "@babylonjs/serializers": "9.16.0"
   },
   "devDependencies": {
-    "@babylonjs-toolkit/mcp": "1.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
