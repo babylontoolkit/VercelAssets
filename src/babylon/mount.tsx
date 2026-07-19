@@ -21,7 +21,7 @@
 //       <BabylonMount /> works as-is.
 
 import { lazy, Suspense, type ReactNode } from "react";
-import { DefaultBabylonPreloader } from "./custom/loading";
+import { DefaultBabylonPreloader } from "../custom/loading";
 
 const InnerScene = lazy(async () => {
   const { default: BabylonSceneViewer } = await import("./system/babylon");

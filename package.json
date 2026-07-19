@@ -4,11 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "dev:open": "node tools/open-browser.cjs",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint",
-    "update-babylon": "node tools/update-babylon.cjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "@babylonjs-toolkit/next": "9.16.0",

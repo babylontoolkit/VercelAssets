@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { DefaultBabylonPreloader } from "@/babylon/custom/loading";
+import { DefaultBabylonPreloader } from "@/custom/loading";
 import BabylonSceneViewer from "@/babylon/system/babylon";
 
 export default function Play() {

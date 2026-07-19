@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { babylonLogo, spinnerLogo } from "./loading";
-import GameManager from "../globals";
+import GameManager from "../babylon/globals";
 import "./splash.css";
 
 type AssetProgressMessage = {

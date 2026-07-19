@@ -3,8 +3,8 @@
 import { useCallback } from "react";
 import { useUnifiedNavigation, readNavStateStore } from "./platform";
 import BaseSceneViewer from "./viewer";
-import CustomOverlay from "../custom/overlay";
-import SplashScreen from "../custom/splash";
+import CustomOverlay from "../../custom/overlay";
+import SplashScreen from "../../custom/splash";
 import GameManager from "../globals";
 import { SceneManager, ScriptComponent, Utilities } from "@babylonjs-toolkit/next/scenemanager";
 import { ImportMeshAsync, ISceneLoaderProgressEvent, Scene, Tools, TransformNode } from "@babylonjs/core";
