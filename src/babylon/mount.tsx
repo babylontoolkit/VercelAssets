@@ -21,7 +21,7 @@
 //       <BabylonMount /> works as-is.
 
 import { lazy, Suspense, type ReactNode } from "react";
-import { DefaultBabylonPreloader } from "../custom/loading";
+import { DefaultBabylonPreloader } from "../chrome/loading";
 
 const InnerScene = lazy(async () => {
   const { default: BabylonSceneViewer } = await import("./system/babylon");
@@ -29,7 +29,7 @@ const InnerScene = lazy(async () => {
     default: ({
       fullPage = true,
       allowQueryParams = true,
-      enableCustomOverlay = false,
+      enableCustomOverlay = true,
     }: SceneProps) => (
       <BabylonSceneViewer
         fullPage={fullPage}
