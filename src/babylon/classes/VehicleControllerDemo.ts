@@ -56,7 +56,7 @@ export class VehicleControllerDemo extends SceneController {
                 if (vehicleCameraManager != null) {
                     vehicleCameraManager.enableCamera = true;
                     vehicleCameraManager.autoAttachCamera = true;
-                    vehicleCameraManager.followTarget = false;
+                    vehicleCameraManager.followTarget = true;
                 }
             }
         });
