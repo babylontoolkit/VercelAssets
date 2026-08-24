@@ -123,9 +123,9 @@ function BabylonSceneViewer(props: SceneViewerProps & React.CanvasHTMLAttributes
       if (babylonGameMode != null && babylonGameMode !== "") {
         const ScriptComponentClass = Utilities.InstantiateClass(babylonGameMode);
         if (ScriptComponentClass != null) {
-            sceneController = new ScriptComponentClass(new TransformNode("GameMode", scene), scene, {});
+            sceneController = new ScriptComponentClass(new TransformNode("GameMode", scene), scene, {  _registerComponentAlias: false });
             if (sceneController != null) {
-              SceneManager.AttachScriptComponent(sceneController, babylonGameMode, false);
+              SceneManager.AttachScriptComponent(sceneController, babylonGameMode, true);
             } else {
               Tools.Warn("Failed to instantiate script class: " + babylonGameMode);
             }
