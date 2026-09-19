@@ -87,6 +87,37 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
                           return;
                       }
 
+                      // WebGPU only: load glslang/twgsl (the GLSL-to-WGSL converter every GLSL post-process needs) right after initAsync
+                      // instead of lazily seconds later, and say so once when it fails or stalls. Fire-and-forget: it never throws, never
+                      // rejects and never delays the scene load. Babylon caches that load and never rejects it, so a load still pending at
+                      // the timeout is dropped for the next caller, and TOOLKIT.PostProcessor's watchdog retries it.
+                      void new Promise<boolean>((resolve) => {
+                          const warmEngine = webgpuEngine as any;
+                          let warmDone = false;
+                          let warmTimer: ReturnType<typeof setTimeout> | null = null;
+                          const warmFinish = (loaded: boolean, message?: string): void => {
+                              if (warmDone) return;
+                              warmDone = true;
+                              if (warmTimer != null) clearTimeout(warmTimer);
+                              if (!loaded && message) console.error(message);
+                              resolve(loaded);
+                          };
+                          try {
+                              if (disposeRequested || warmEngine.isDisposed || typeof warmEngine.prepareGlslangAndTintAsync !== "function") { warmFinish(false); return; }
+                              if (warmEngine._glslangAndTintAreFullyLoaded === true) { warmFinish(true); return; }
+                              const waitMs = 15000;
+                              warmTimer = setTimeout(() => {
+                                  warmTimer = null;
+                                  if (disposeRequested || warmEngine.isDisposed || warmEngine._glslangAndTintAreFullyLoaded === true) { warmFinish(warmEngine._glslangAndTintAreFullyLoaded === true); return; }
+                                  warmEngine._workingGlslangAndTintPromise = null;
+                                  warmFinish(false, "WebGPU glslang/twgsl (scripts/glslang.js, glslang.wasm, twgsl.js, twgsl.wasm) did not load within " + (waitMs / 1000) + " s: GLSL post-processes (colour grading, bloom, vignette, FXAA) cannot render until it does. The stalled load is dropped so the next caller (TOOLKIT.PostProcessor retries it) starts a fresh one.");
+                              }, waitMs);
+                              warmEngine.prepareGlslangAndTintAsync().then(() => { warmFinish(true); }, (warmError: any) => { warmFinish(false, "WebGPU glslang/twgsl failed to load: " + ((warmError && warmError.message) || warmError)); });
+                          } catch (warmError: any) {
+                              warmFinish(false, "WebGPU glslang/twgsl warm-up failed: " + ((warmError && warmError.message) || warmError));
+                          }
+                      });
+
                       engine = webgpuEngine as unknown as AbstractEngine;
                   } catch (webgpuError) {
                       console.warn("WebGPU initialization failed, falling back to WebGL.", webgpuError);
