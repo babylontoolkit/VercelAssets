@@ -23,7 +23,12 @@ import { INavigationState, UnifiedNavigateFunction } from "./system/platform";
 // Avoids sprinkling `(globalThis as any)` casts throughout the file.
 const G = globalThis as unknown as {
   HAVOKPHYSICS_JS: any;
-  SCRIPTBUNDLE_JS: any;
+  /** Project script bundle loads by absolute URL, shared across remounts; a failed load is removed so the next mount retries. */
+  SCRIPTBUNDLE_JS: Map<string, Promise<void>> | undefined;
+  /** Toolkit global read by classic (UMD-style) project script bundles; set when the toolkit index module evaluates. */
+  TOOLKIT: unknown;
+  /** Babylon global read by classic (UMD-style) project script bundles; set when the toolkit index module evaluates. */
+  BABYLON: unknown;
   HK: any;
   HKP: any;
   HavokPhysics: () => Promise<any>;
@@ -36,7 +41,8 @@ class GameManager {
         await SceneManager.InitializeRuntime(scene.getEngine(), { showDefaultLoadingScreen: showLoadingScreen, hideLoadingUIWithEngine: hideEngineLoadingUI });
         // Note: Support legacy project script bundle loading for backwards compatibility.
         if (scriptBundle != null && scriptBundle.length > 0) {
-            G.SCRIPTBUNDLE_JS = G.SCRIPTBUNDLE_JS || await Tools.LoadScriptAsync(scriptBundle);
+            await GameManager.EstablishToolkitGlobals();
+            await GameManager.LoadProjectScriptBundle(scriptBundle);
         }
         await import("./classes/DefaultGameMode");
         await import("./classes/FreeCameraMode");
@@ -70,6 +76,64 @@ class GameManager {
                 cleanupGlobals(); // Note: Force clean up if scene was disposed already
             }
         }        
+    }
+
+    /**
+     * Sets `window.TOOLKIT`, `window.BABYLON` and `window.PROJECT`, which a classic project script bundle
+     * (for example the Unity exporter's `<project>.js`) reads at its top level. The toolkit index module sets them
+     * when it evaluates, so it must be imported before the bundle runs, whichever game classes the host imports.
+     * @throws Error when the toolkit index evaluated without setting the globals.
+     */
+    private static async EstablishToolkitGlobals(): Promise<void> {
+        const toolkitIndex: object = await import("@babylonjs-toolkit/next");
+        if (G.TOOLKIT == null || G.BABYLON == null) {
+            // Reading the namespace keeps the index (and its global-setting side effect) in production builds,
+            // because the package declares "sideEffects": false.
+            const exportCount: number = Object.keys(toolkitIndex).length;
+            throw new Error(`The Babylon Toolkit index (${exportCount} exports) did not set window.TOOLKIT and window.BABYLON.`);
+        }
+    }
+
+    /**
+     * Loads a project script bundle once per URL. Concurrent and later mounts share the same load, and a load
+     * that fails (network error or an exception in the bundle's top-level code) is forgotten so the next mount retries.
+     * @param scriptBundle URL of the classic project script bundle, absolute or relative to the page.
+     * @returns A promise that resolves once the bundle has evaluated without error.
+     * @throws The fetch or evaluation error of the bundle.
+     */
+    private static LoadProjectScriptBundle(scriptBundle: string): Promise<void> {
+        const bundleLoads: Map<string, Promise<void>> = G.SCRIPTBUNDLE_JS ?? new Map<string, Promise<void>>();
+        G.SCRIPTBUNDLE_JS = bundleLoads;
+        const bundleUrl: string = new URL(scriptBundle, document.baseURI).href;
+        const existingLoad: Promise<void> | undefined = bundleLoads.get(bundleUrl);
+        if (existingLoad != null) return existingLoad;
+        const bundleLoad: Promise<void> = GameManager.EvaluateProjectScriptBundle(bundleUrl);
+        bundleLoads.set(bundleUrl, bundleLoad);
+        bundleLoad.catch(() => bundleLoads.delete(bundleUrl));
+        return bundleLoad;
+    }
+
+    /**
+     * Appends the bundle's script element and waits for it to run. A script element still fires `load` when its
+     * top-level code throws, so the window `error` event for the bundle's URL is watched to report that failure too.
+     * @param bundleUrl Absolute URL of the classic project script bundle.
+     * @returns A promise that resolves once the bundle has evaluated without error.
+     * @throws The fetch or evaluation error of the bundle.
+     */
+    private static async EvaluateProjectScriptBundle(bundleUrl: string): Promise<void> {
+        let evaluationError: unknown = null;
+        const captureEvaluationError = (event: ErrorEvent): void => {
+            if (event.filename === bundleUrl && evaluationError == null) {
+                evaluationError = event.error ?? new Error(event.message);
+            }
+        };
+        window.addEventListener("error", captureEvaluationError);
+        try {
+            await Tools.LoadScriptAsync(bundleUrl);
+        } finally {
+            window.removeEventListener("error", captureEvaluationError);
+        }
+        if (evaluationError != null) throw evaluationError;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

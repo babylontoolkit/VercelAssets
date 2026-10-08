@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AbstractEngine, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { AbstractEngine, Camera, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import { SceneManager } from "@babylonjs-toolkit/next/scenemanager";
 import GameManager from "../globals";
 
@@ -149,6 +149,15 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
               const defaultCamera = new FreeCamera("defaultCamera", new Vector3(0, 5, -10), scene);
               defaultCamera.setTarget(Vector3.Zero());
               scene.activeCamera = defaultCamera;
+              // The placeholder only stands in until the scene gets a camera of its own. Babylon makes the first
+              // camera active when none is, so without this hand-over a loaded scene whose camera is not the tagged
+              // main camera would keep rendering through the placeholder instead of its own camera.
+              const placeholderScene: Scene = scene;
+              placeholderScene.onNewCameraAddedObservable.addOnce((addedCamera: Camera) => {
+                  if (placeholderScene.activeCamera !== defaultCamera) return;
+                  placeholderScene.activeCamera = addedCamera;
+                  defaultCamera.dispose();
+              });
 
               const handleSceneReady = (readyScene: Scene): void => {
                   if (!disposeRequested) onCreateScene(readyScene);
@@ -170,6 +179,10 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
               engine.runRenderLoop(() => {
                   if (disposeRequested || !scene || scene.isDisposed) return;
                   if (typeof onRender === "function") onRender(scene);
+                  // A scene can briefly have no camera while a loaded camera is replaced (for example by its rig),
+                  // and Scene.render() throws without one, so that frame is skipped.
+                  const hasCamera: boolean = scene.activeCamera != null || (scene.activeCameras != null && scene.activeCameras.length > 0);
+                  if (!hasCamera) return;
                   scene.render();
               });
 
