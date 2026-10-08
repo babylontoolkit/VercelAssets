@@ -219,8 +219,9 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
           // Note: The React navigation hook is owned by ReactRouterNavAdapter (app-wide),
           // so it is intentionally NOT deleted here when the scene viewer unmounts.
 
+          // The toolkit disposal releases its per-scene state too (a SceneLoad remount reuses the page).
           if (scene && !scene.isDisposed) {
-              try { scene.dispose(); } catch (e) { console.warn(e); }
+              try { SceneManager.DisposeScene(scene); } catch (disposeError) { console.warn(disposeError); }
           }
 
           if (engine) {

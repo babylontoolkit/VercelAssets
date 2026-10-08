@@ -6,7 +6,7 @@ import BaseSceneViewer from "./viewer";
 import CustomOverlay from "../../chrome/overlay";
 import SplashScreen from "../../chrome/splash";
 import GameManager from "../globals";
-import { SceneManager, ScriptComponent, Utilities } from "@babylonjs-toolkit/next/scenemanager";
+import { SceneChange, SceneManager, SceneTransitionOverlay, ScriptComponent, Utilities } from "@babylonjs-toolkit/next/scenemanager";
 import { ImportMeshAsync, ISceneLoaderProgressEvent, Scene, Tools, TransformNode } from "@babylonjs/core";
 
 import "./babylon.css";
@@ -76,7 +76,8 @@ function BabylonSceneViewer(props: SceneViewerProps & React.CanvasHTMLAttributes
     // STEP 1 - Initialize the global runtime scene properties and react navigation system
     ///////////////////////////////////////////////////////////////////////////////////////////////////////
     try {
-      SceneManager.ShowSplashScreen(); // Note: Always Show Game Manager Splash Screen
+      // Note: Show the game manager splash screen, except under the scene transition overlay of a scene change
+      if (!SceneTransitionOverlay.IsVisible()) SceneManager.ShowSplashScreen();
       await GameManager.InitializeRuntime(scene, gameProjectScriptBundle, true, false, false);
       if (disposed || scene.isDisposed) return; // Note: Strict mode safety
       ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,6 +225,7 @@ function BabylonSceneViewer(props: SceneViewerProps & React.CanvasHTMLAttributes
       if (disposed || scene.isDisposed) return; // Note: Strict mode safety
     } catch (error) {
       console.error("Failed to load babylon scene assets", error);
+      SceneChange.NotifySceneLoadFailed(error instanceof Error ? error.message : String(error));
     } finally {
       /////////////////////////////////////////////////////////////////////////////////////////////////////
       // STEP 3 - Finalize scene setup after assets are loaded and hide the loading screen
