@@ -7,13 +7,13 @@
   margin: 0;
   padding: 0;
   z-index: 9999;
-  opacity: 1;
+  opacity: 0.995; /* Not 1: a canvas the splash covers completely is never composited, and its first composite when the splash fades stalls a WebGPU page for 200-1200 ms */
   transition: opacity 1.5s ease;
   overflow: hidden;
   pointer-events: none;
   color: #E0684B; /* Default Babylon Toolkit Soft Orange */
   background-color: #2A2342; /* Default Babylon Toolkit Base Purple */
-  will-change: auto; /* Optimizes for potential UI animations in React overlay */
+  will-change: opacity; /* Own compositor layer from the start, so the fade never re-layers the page */
 }
 
 @-webkit-keyframes spin1 {
@@ -24,4 +24,36 @@
 @keyframes spin1 {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Loading progress bar under the spinner (scene download, then the toolkit asset preloader: terrains, skins, probes) */
+.splash-progress {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.splash-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background-color: #E0684B; /* Default Babylon Toolkit Soft Orange */
+  transition: width 0.25s ease-out;
+}
+
+.splash-progress-indeterminate {
+  width: 30%;
+  animation: splash-progress-slide 1.2s infinite ease-in-out;
+}
+
+@keyframes splash-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(340%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-progress-fill { transition: none; }
+  .splash-progress-indeterminate { animation: none; width: 100%; opacity: 0.4; }
 }

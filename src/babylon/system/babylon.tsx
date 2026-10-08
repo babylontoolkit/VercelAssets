@@ -233,6 +233,15 @@ function BabylonSceneViewer(props: SceneViewerProps & React.CanvasHTMLAttributes
       } catch (e) {
         console.error("Failed to initialize game mode", e);
       }
+      // No scene controller took over (game mode class missing or not a SceneController): hide the splash once the toolkit
+      // asset preloader has finished (terrains, skins, probes), so a failed game mode never leaves the splash up for good.
+      if (!gameModeReadyInvoked && !disposed && !scene.isDisposed) {
+        if (typeof (SceneManager as any).WhenSceneReady === "function") {
+          (SceneManager as any).WhenSceneReady(scene).then(() => { if (!scene.isDisposed) SceneManager.HideSplashScreen(scene); });
+        } else {
+          SceneManager.HideSplashScreen(scene, 2500);
+        }
+      }
       try {
         if (!disposed && !scene.isDisposed && disposeObserver) {
           scene.onDisposeObservable.remove(disposeObserver);
