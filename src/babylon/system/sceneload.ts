@@ -8,18 +8,40 @@ const SCENE_LOAD_MESSAGE = "SceneLoad";
 /** The play route the scene viewer is mounted on. */
 const PLAY_ROUTE_PATH = "/play";
 
-/** The fields of the toolkit's `SceneLoad` message data (TOOLKIT.ISceneLoadMessage) that the host reads. */
+/**
+ * The fields of a `SceneLoad` message that the host reads: the toolkit's full message (TOOLKIT.ISceneLoadMessage), or a
+ * bare `{ scene }` posted by any same-origin page, resolved against the scene now on /play.
+ */
 interface SceneLoadRequest {
-    /** Absolute URL of the destination scene file. */
-    sceneUrl: string;
+    /** Absolute URL of the destination scene file (the toolkit's message). */
+    sceneUrl?: string;
+    /** The destination scene file, relative to the current scene's folder or absolute (a bare request). */
+    scene?: string;
+    /** The destination's display name, for a splash screen that shows one. */
+    title?: string;
+    /** A CSS colour for a splash screen that tints itself, such as the colour on screen at the hand-off. */
+    color?: string;
     /** Game mode class for the destination, or null to keep the current one. */
-    gameMode: string | null;
+    gameMode?: string | null;
 }
 
 /**
- * Handles toolkit `SceneLoad` requests on the /play route: navigates to /play with the destination `sceneUrl`
- * (same-origin messages only, never a page reload) and returns a generation number that keys the scene viewer,
- * so the viewer remounts and loads the destination under the toolkit's transition overlay.
+ * The absolute destination URL of a request: its `sceneUrl`, else its `scene` resolved against the current scene URL.
+ * @param request The message data.
+ * @param currentSceneUrl The scene URL now on /play, if any.
+ * @returns The destination URL, or null when the request names none.
+ */
+function resolveSceneUrl(request: SceneLoadRequest, currentSceneUrl: string | undefined): string | null {
+    if (typeof request.sceneUrl === "string" && request.sceneUrl !== "") return request.sceneUrl;
+    if (typeof request.scene !== "string" || request.scene === "") return null;
+    return new URL(request.scene, new URL(currentSceneUrl || "./", window.location.href)).href;
+}
+
+/**
+ * Handles `SceneLoad` requests on the /play route: navigates to /play with the destination scene (same-origin messages
+ * only, never a page reload) and returns a generation number that keys the scene viewer, so the viewer remounts and
+ * loads the destination like any scene, behind the splash screen. The request's title and colour go into the
+ * navigation state as `splashTitle` and `splashColor` for a splash screen that uses them.
  * While mounted, it tells the toolkit that the host handles scene change requests.
  * @returns The generation; it starts at 0 and increases by one for each accepted request.
  */
@@ -34,13 +56,17 @@ export function useSceneLoadRequests(): number {
          */
         const handleRequest = (request: SceneLoadRequest, event?: MessageEvent): void => {
             if (event == null || event.origin !== window.location.origin) return;
-            if (request == null || typeof request.sceneUrl !== "string") return;
+            if (request == null) return;
             const currentNavState = readNavStateStore();
+            const sceneUrl = resolveSceneUrl(request, currentNavState?.sceneUrl);
+            if (sceneUrl == null) return;
             navigate(PLAY_ROUTE_PATH, {
                 gameMode: request.gameMode ?? currentNavState?.gameMode,
-                sceneUrl: request.sceneUrl,
+                sceneUrl: sceneUrl,
                 scriptUrl: currentNavState?.scriptUrl,
                 reloadPage: false,
+                splashTitle: request.title ?? "",
+                splashColor: request.color ?? "",
             });
             setGeneration((previousGeneration: number) => previousGeneration + 1);
         };
