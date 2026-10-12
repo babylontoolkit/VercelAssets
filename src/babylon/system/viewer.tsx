@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AbstractEngine, Camera, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { AbstractEngine, Camera, DracoDecoder, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import { SceneManager } from "@babylonjs-toolkit/next/scenemanager";
 import GameManager from "../globals";
 
@@ -66,6 +66,13 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
 
           let engineOptionsToUse = engineOptions != null ? { ...engineOptions } : { ...DEFAULT_ENGINE_OPTIONS };
           if (legacyAudio === true) engineOptionsToUse.audioEngine = legacyAudio;
+
+          /*
+           * Draco mesh decoder (KHR_draco_mesh_compression), self-hosted beside glslang/twgsl in public/scripts.
+           * Set before the engine branch so WebGL and WebGPU both use it, and before any scene loads. Babylon
+           * fetches draco.wasm itself and hands the bytes to its decode workers, which load draco.js by URL.
+           */
+          DracoDecoder.DefaultConfiguration = { wasmUrl: "scripts/draco.js", wasmBinaryUrl: "scripts/draco.wasm" };
 
           try {
               if (typeof navigator !== "undefined" && (navigator as any).gpu && webgpu) {

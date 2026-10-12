@@ -3,7 +3,7 @@
 import { Scene, Tools, Vector3 } from "@babylonjs/core";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins/havokPlugin";
 import HavokPhysics from "@babylonjs/havok";
-import { SceneManager } from "@babylonjs-toolkit/next/scenemanager";
+import { SceneManager, RigidbodyPhysics } from "@babylonjs-toolkit/next/scenemanager";
 import { LocalMessageBus } from "@babylonjs-toolkit/next/localmessagebus";
 
 // =============================================================================================
@@ -61,6 +61,8 @@ class GameManager {
             if (!scene.isDisposed && G.HK != null && G.HKP != null)
             {
                 scene.enablePhysics(new Vector3(0,-9.81,0), G.HKP);
+                // Step physics on Unity's fixed timestep (0.02 s) at any display refresh rate; an exported scene's fixeddeltatime overrides it.
+                RigidbodyPhysics.ConfigureFixedTimeStep(scene);
             }
             const cleanupGlobals = () =>
             {
