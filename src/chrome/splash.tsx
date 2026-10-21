@@ -44,7 +44,9 @@ function SplashScreen() {
   const spinnerSrc = spinnerLogo;
   const [statusText, setStatusText] = useState<string>("Loading Scene ...");
   const [detailsText, setDetailsText] = useState<string>("");
-  const [progress, setProgress] = useState<number | null>(null);
+  // The bar's whole percent (0-100), or null before the first value: kept as the shown integer so React skips the re-render
+  // when a progress event does not change what the bar shows (the download fires many events a second)
+  const [progressPercent, setProgressPercent] = useState<number | null>(null);
   useEffect(() => {
     // the toolkit's own scene build stages (BUILDING SCENE NN%, SETTING UP SCENE) take over the status line and bar once the
     // scene file has downloaded, instead of the download percent sitting at 100% (runtime 9.29+)
@@ -56,7 +58,7 @@ function SplashScreen() {
       if (data == null || loaderState >= 1) return;
       if (data.message != null) setStatusText(data.message);
       const percent = data.overallPercent ?? data.percent;
-      if (typeof percent === "number" && isFinite(percent)) setProgress(Math.max(0, Math.min(1, percent / 100)));
+      if (typeof percent === "number" && isFinite(percent)) setProgressPercent(Math.round(Math.max(0, Math.min(100, percent))));
     };
     GameManager.EventBus.OnMessage<AssetProgressMessage>("OnLoadProgress", onLoadProgress);
     // 2. the toolkit asset preloader that runs after the download: terrains, skins, probes, audio (runtime 9.29+)
@@ -68,10 +70,10 @@ function SplashScreen() {
       if (data.status != null && data.status !== "") setStatusText(toSentenceCase(data.status));
       if (data.details != null) setDetailsText(toSentenceCase(data.details));
       if (typeof data.progress === "number" && isFinite(data.progress)) {
-        const value = Math.max(0, Math.min(1, data.progress));
+        const value = Math.round(Math.max(0, Math.min(1, data.progress)) * 100);
         const restart = (data.state !== loaderState);
         loaderState = data.state;
-        setProgress((previous) => (restart || previous == null) ? value : Math.max(previous, value));
+        setProgressPercent((previous) => (restart || previous == null) ? value : Math.max(previous, value));
       }
     }) : null;
     return () => {
@@ -80,7 +82,7 @@ function SplashScreen() {
     };
   }, []);
 
-  const percent: number | null = (progress != null) ? Math.round(progress * 100) : null;
+  const percent: number | null = progressPercent;
   return (
     <div className="splash" id="xbabylonjsSplashScreen">
       <div
@@ -138,9 +140,12 @@ function SplashScreen() {
         >
           <div style={{ minHeight: "18px", marginBottom: "10px", letterSpacing: "0.3px" }}>{statusText}</div>
           <div className="splash-progress">
+            {/* scaled, never resized: a progress update re-lays out nothing. The key gives the determinate bar its own element,
+                so it does not transition in from the indeterminate slide's last position */}
             <div
+              key={(percent == null) ? "indeterminate" : "determinate"}
               className={(percent == null) ? "splash-progress-fill splash-progress-indeterminate" : "splash-progress-fill"}
-              style={(percent == null) ? undefined : { width: percent + "%" }}
+              style={(percent == null) ? undefined : { transform: `scaleX(${percent / 100})` }}
             />
           </div>
         </div>
