@@ -38,6 +38,8 @@ class GameManager {
     /** Initialize the game runtime environment */
     public static async InitializeRuntime(scene:Scene, scriptBundle:string, enablePhysics:boolean = true, showLoadingScreen:boolean = true, hideEngineLoadingUI:boolean = false): Promise<void> {
         if (scene.isDisposed) return; // Note: Strict mode safety
+        // Note: Set false to turn off every shader precompile and shader cache system. InitializeRuntime reads it, so it is set first.
+        SceneManager.PrecompileShaders = true;
         await SceneManager.InitializeRuntime(scene.getEngine(), { showDefaultLoadingScreen: showLoadingScreen, hideLoadingUIWithEngine: hideEngineLoadingUI });
         // Note: Support legacy project script bundle loading for backwards compatibility.
         if (scriptBundle != null && scriptBundle.length > 0) {

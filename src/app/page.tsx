@@ -1,10 +1,31 @@
 'use client';
 
 import Image from "next/image";
+import { useRef, useState } from "react";
 import { useUnifiedNavigation } from "@/babylon/system/platform";
+import { ContentInstallPanel, useContentInstaller } from "@/chrome/content-installer";
+
+/** The look of Home's secondary buttons, shared by the Download button. */
+const SECONDARY_BUTTON_CLASS_NAME = "flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]";
 
 export default function Home() {
   const { navigate } = useUnifiedNavigation();
+  const { state: installerState } = useContentInstaller();
+  const downloadDialogRef = useRef<HTMLDialogElement | null>(null);
+  const [isDownloadDialogOpen, setDownloadDialogOpen] = useState<boolean>(false);
+  // The Download button appears only while the content installer runs (NEXT_PUBLIC_CONTENT_INSTALLER=on and supported here).
+  const showDownloadControls: boolean = installerState != null && installerState.availability !== "disabled";
+  const downloadButtonLabel: string = installerState?.everythingInstalled === true ? "Downloaded ✓" : "Download";
+
+  /** Opens the Download Game Data dialog as a modal (Escape closes it). */
+  const openDownloadDialog = (): void => {
+    downloadDialogRef.current?.showModal();
+    setDownloadDialogOpen(true);
+  };
+  /** Closes the Download Game Data dialog (a running download keeps going). */
+  const closeDownloadDialog = (): void => {
+    downloadDialogRef.current?.close();
+  };
   const handlePlayDemo = () => {
     navigate('/play', {
       gameMode: 'PlayerControllerDemo',
@@ -71,13 +92,28 @@ export default function Home() {
             Asset Library
           </a>
           <button
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
+            className={SECONDARY_BUTTON_CLASS_NAME}
             type="button"
             onClick={handlePlayDemo}
           >
             Play Demo
           </button>
         </div>
+        {showDownloadControls && (
+          <section className="flex w-full flex-col gap-4 text-base font-medium sm:flex-row" aria-label="Game data">
+            <button className={SECONDARY_BUTTON_CLASS_NAME} type="button" aria-haspopup="dialog" onClick={openDownloadDialog}>
+              {downloadButtonLabel}
+            </button>
+            <dialog
+              className="m-auto w-[min(540px,calc(100vw-32px))] rounded-2xl border border-solid border-black/[.08] bg-white p-6 text-left text-base font-normal text-zinc-600 shadow-xl backdrop:bg-black/50 dark:border-white/[.145] dark:bg-black dark:text-zinc-400"
+              aria-label="Download Game Data"
+              ref={downloadDialogRef}
+              onClose={() => setDownloadDialogOpen(false)}
+            >
+              {isDownloadDialogOpen && <ContentInstallPanel onClose={closeDownloadDialog} />}
+            </dialog>
+          </section>
+        )}
       </main>
     </div>
   );

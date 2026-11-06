@@ -6,10 +6,16 @@ import BaseSceneViewer from "./viewer";
 import CustomOverlay from "../../chrome/overlay";
 import SplashScreen from "../../chrome/splash";
 import GameManager from "../globals";
-import { SceneManager, ScriptComponent, Utilities } from "@babylonjs-toolkit/next/scenemanager";
+import { prepareContentSceneLoad } from "../../chrome/content-installer/sceneLoad";
+import { SceneManager, ScriptComponent, SplashNarrator, Utilities } from "@babylonjs-toolkit/next/scenemanager";
 import { ImportMeshAsync, ISceneLoaderProgressEvent, Scene, Tools, TransformNode } from "@babylonjs/core";
 
 import "./babylon.css";
+
+/** The splash's download subtitle as the toolkit ships it, restored for scene loads that download. */
+const DOWNLOAD_SUBTITLE: string = SplashNarrator.SUBTITLE_TEXT.download;
+/** The splash's download subtitle while the scene's files come from the content installer's storage (D22). */
+const LOCAL_LOAD_SUBTITLE: string = "LOADING FROM THIS DEVICE";
 
 export declare type SceneViewerProps = {
   fullPage?: boolean;
@@ -152,6 +158,13 @@ function BabylonSceneViewer(props: SceneViewerProps & React.CanvasHTMLAttributes
         overallPercent: 0,
         message: "Loading Scene ..."
       });
+      // Content installer (D22): pin this page's content version and put the scene's group first; when every file of
+      // the scene is stored on this device, say so on the splash before the import reads them from storage.
+      const installedLocally: boolean = await prepareContentSceneLoad(babylonRootPath + babylonSceneFile);
+      if (disposed || scene.isDisposed) return; // Note: Strict mode safety
+      if (installedLocally) postAssetMessage("OnLoadProgress", { message: "Loading from this device", percent: 0 });
+      // The toolkit's splash narrator owns the status line once it runs: name the download band for what it is now.
+      SplashNarrator.SUBTITLE_TEXT.download = installedLocally ? LOCAL_LOAD_SUBTITLE : DOWNLOAD_SUBTITLE;
       await ImportMeshAsync(babylonSceneFile, scene, {
         meshNames: null,
         rootUrl: babylonRootPath,

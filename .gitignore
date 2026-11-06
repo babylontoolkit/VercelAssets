@@ -20,6 +20,10 @@
 # production
 /build
 
+# content installer (written by scripts/content-installer-build.mjs)
+/public/bt-content-worker.js
+/public/bt-shell-manifest.json
+
 # misc
 .DS_Store
 *.pem

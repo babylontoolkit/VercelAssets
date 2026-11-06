@@ -2,10 +2,24 @@
 
 import { useEffect, useRef } from "react";
 import { AbstractEngine, Camera, DracoDecoder, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
+import { KhronosTextureContainer2 } from "@babylonjs/core/Misc/khronosTextureContainer2";
 import { SceneManager } from "@babylonjs-toolkit/next/scenemanager";
 import GameManager from "../globals";
 
-const DEFAULT_ENGINE_OPTIONS = {};
+/**
+ * Default WebGL context attributes.
+ *
+ * `preserveDrawingBuffer: true` keeps the rendered frame readable after the browser composites it,
+ * which is what makes `canvas.toDataURL()` — and therefore any screenshot of the running game —
+ * return the actual frame instead of a fully transparent image. Babylon defaults it to `false`
+ * (`thinEngine`: `if (options.preserveDrawingBuffer === undefined) options.preserveDrawingBuffer = false`),
+ * so without this a screenshot silently succeeds and produces a blank PNG.
+ *
+ * ⚠️ This applies to the WebGL engine ONLY. The WebGPU path below is preferred whenever the browser
+ * supports it, and Babylon's WebGPU engine has no such option — so do not read this as "screenshots
+ * are solved"; on WebGPU that depends on the browser's canvas readback, not on anything set here.
+ */
+const DEFAULT_ENGINE_OPTIONS = { preserveDrawingBuffer: true };
 
 export declare type BabylonjsProps = {
   webgpu?: boolean;
@@ -64,7 +78,14 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
           const canvas = reactCanvas.current;
           if (!canvas) return;
 
-          let engineOptionsToUse = engineOptions != null ? { ...engineOptions } : { ...DEFAULT_ENGINE_OPTIONS };
+          /*
+           * Defaults FIRST, caller's options over the top — so passing `engineOptions` overrides only
+           * the keys it names. The previous form replaced the defaults wholesale, which meant any
+           * project supplying one option (say `{ stencil: true }`) silently lost
+           * `preserveDrawingBuffer` and its screenshots went blank again, for a reason nowhere near
+           * the change that caused it.
+           */
+          let engineOptionsToUse: any = { ...DEFAULT_ENGINE_OPTIONS, ...(engineOptions ?? {}) };
           if (legacyAudio === true) engineOptionsToUse.audioEngine = legacyAudio;
 
           /*
@@ -73,6 +94,21 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
            * fetches draco.wasm itself and hands the bytes to its decode workers, which load draco.js by URL.
            */
           DracoDecoder.DefaultConfiguration = { wasmUrl: "scripts/draco.js", wasmBinaryUrl: "scripts/draco.wasm" };
+
+          /*
+           * KTX2 texture transcoders, self-hosted in public/scripts (the same files and settings as the exporter's
+           * engine.html), so KTX2 textures never load their decoders from the Babylon CDN and work offline.
+           */
+          KhronosTextureContainer2.URLConfig.jsDecoderModule = "scripts/babylon.ktx2decoder.js";
+          KhronosTextureContainer2.URLConfig.jsMSCTranscoder = "scripts/msc_basis_transcoder.js";
+          KhronosTextureContainer2.URLConfig.wasmMSCTranscoder = "scripts/msc_basis_transcoder.wasm";
+          KhronosTextureContainer2.URLConfig.wasmZSTDDecoder = "scripts/zstddec.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToASTC = "scripts/uastc_astc.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToBC7 = "scripts/uastc_bc7.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToRGBA_UNORM = "scripts/uastc_rgba8_unorm_v2.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToRGBA_SRGB = "scripts/uastc_rgba8_srgb_v2.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToR8_UNORM = "scripts/uastc_r8_unorm.wasm";
+          KhronosTextureContainer2.URLConfig.wasmUASTCToRG8_UNORM = "scripts/uastc_rg8_unorm.wasm";
 
           try {
               if (typeof navigator !== "undefined" && (navigator as any).gpu && webgpu) {

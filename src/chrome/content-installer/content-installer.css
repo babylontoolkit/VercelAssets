@@ -1,0 +1,110 @@
+/*
+ * Content installer layer — layout, plus neutral defaults that follow the page's own text colour (currentColor) and
+ * the browser's system colours (Canvas / CanvasText) so the bar and toast are visible before an app skins them. Apps
+ * skin the class hooks (colours, fonts, borders) in their own styles.
+ * The bar fill is written by script through transform: scaleX() and carries no transition (Game UI Performance).
+ */
+
+.content-install-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.content-install-panel__summary,
+.content-install-panel__readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+/* The sizes line ("Game data · On this device · Free space"): its dots stand between the sizes, so they sit closer. */
+.content-install-panel__summary {
+  gap: 4px 10px;
+}
+
+.content-install-panel__bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.content-install-panel__bar-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: currentColor;
+}
+
+.content-install-panel__actions,
+.content-install-offer__actions,
+.content-toast__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.content-install-panel__title,
+.content-install-panel__text,
+.content-install-panel__graphics-note,
+.content-install-panel__partial,
+.content-install-panel__error,
+.content-install-offer__message,
+.content-toast__message {
+  margin: 0;
+}
+
+.content-install-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.content-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.content-toast--visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  /* A toast that mounts already visible slides in too (the transition only runs on a class change). */
+  animation: content-toast-enter 200ms ease;
+}
+
+@keyframes content-toast-enter {
+  from {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-toast {
+    transition: none;
+  }
+
+  .content-toast--visible {
+    animation: none;
+  }
+}

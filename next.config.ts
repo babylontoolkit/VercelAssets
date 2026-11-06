@@ -78,6 +78,36 @@ function buildMediaHeaderEntries(): HeaderEntry[] {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Content installer (src/chrome/content-installer, scripts/content-installer-build.mjs).
+// The service worker and the app shell manifest sit at the site root (public/),
+// and the shell manifest names the prerendered Home page "index.html" as the
+// page the worker answers offline navigations with.
+// ---------------------------------------------------------------------------
+const CONTENT_INSTALLER_HEADER_ENTRIES: HeaderEntry[] = [
+  // Mirrors the content-installer Vite plugin's dev answer: the browser checks the worker for updates on every load.
+  {
+    source: "/bt-content-worker.js",
+    headers: [
+      { key: "Content-Type", value: "text/javascript" },
+      { key: "Cache-Control", value: "no-cache" },
+    ],
+  },
+  // The shell manifest changes with every build.
+  {
+    source: "/bt-shell-manifest.json",
+    headers: [
+      { key: "Content-Type", value: "application/json" },
+      { key: "Cache-Control", value: "no-cache" },
+    ],
+  },
+  // The web app manifest (layout metadata.manifest).
+  {
+    source: "/manifest.webmanifest",
+    headers: [{ key: "Content-Type", value: "application/manifest+json" }],
+  },
+];
+
 // All @babylonjs/* packages are pure ESM ("type": "module").
 // Same list used for serverExternalPackages, transpilePackages, and resolve.alias.
 const BABYLON_PACKAGES = [
@@ -119,7 +149,15 @@ const nextConfig: NextConfig = {
       },
       // Mirrors media-content-type-plugin — per-extension MIME types + CORS
       ...buildMediaHeaderEntries(),
+      // Mirrors the content-installer Vite plugin — worker, shell manifest and web app manifest
+      ...CONTENT_INSTALLER_HEADER_ENTRIES,
     ];
+  },
+
+  // The content installer's offline page: the shell manifest lists the prerendered Home page as "index.html"
+  // (navigationFallback), so the worker downloads and checks it from /index.html, which is Home.
+  async rewrites() {
+    return [{ source: "/index.html", destination: "/" }];
   },
 
   // Disable static image imports so PNG imports resolve as plain string URLs
@@ -179,6 +217,16 @@ const nextConfig: NextConfig = {
         ...splitChunks,
         cacheGroups: {
           ...(splitChunks?.cacheGroups ?? {}),
+          // The content installer loads on Home once the page is idle. It needs only Babylon's dependency-free
+          // Observable, so both get a tiny chunk of their own (ahead of "babylon") instead of pulling the babylon
+          // chunk onto Home — mirrors the Vite "content-installer" chunk group.
+          contentInstaller: {
+            test: /[\\/]contentinstaller\.js$|[\\/]@babylonjs[\\/]core[\\/]Misc[\\/]observable(\.pure)?\.js$/,
+            name: "content-installer",
+            chunks: "all" as const,
+            priority: 40,
+            enforce: true,
+          },
           babylon: {
             test: /[\/]node_modules[\/]@?babylonjs/,
             name: "babylon",
