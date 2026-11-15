@@ -7,7 +7,8 @@
  *     `next start` and a Vercel deployment all serve it at `/bt-content-worker.js`.
  *   node scripts/content-installer-build.mjs shell    (postbuild)
  *     copies the worker too, then writes `public/bt-shell-manifest.json` (format 1, group "shell", navigationFallback
- *     "index.html") over the built app shell: every file of `.next/static/` under its served `_next/static/` path,
+ *     "index.html") over the built app shell: every file of `.next/static/` under its served `_next/static/` path
+ *     (except Next.js's `_buildManifest.js` and `_ssgManifest.js`, which App Router pages never request),
  *     every file of `public/` (a public file wins over an app metadata route of the same path, such as
  *     `src/app/favicon.ico`, so the public bytes are listed), and the prerendered Home page as `index.html` (served there by
  *     next.config.ts's rewrite), each with size, contentSize, SHA-256 and type.
@@ -50,6 +51,11 @@ const GENERATOR = "next-content-installer";
 const EXCLUDE_PATTERNS = [/\.map$/];
 /** System files never listed, wherever they sit (the exporter's manifest leaves them out too, D11). */
 const ALWAYS_EXCLUDED_FILE_NAMES = [".DS_Store", "Thumbs.db"];
+/**
+ * Next.js's fixed build manifests, never listed: App Router pages never request them, and their mixed-case names (which
+ * Next.js does not let a project change) are the only ones left in a build that is otherwise all lowercase.
+ */
+const NEXT_BUILD_MANIFEST_FILE_NAMES = ["_buildManifest.js", "_ssgManifest.js"];
 /** A file whose last path segment contains this is served gzip encoded (the exporter's rule). */
 const GZIP_MARKER = ".gz.";
 /** Media type of an extension the table does not list. */
@@ -146,6 +152,7 @@ function listFiles(rootFolder) {
 function isListed(servedPath) {
     if (servedPath === SHELL_MANIFEST_FILE_NAME) return false;
     if (ALWAYS_EXCLUDED_FILE_NAMES.includes(path.posix.basename(servedPath))) return false;
+    if (NEXT_BUILD_MANIFEST_FILE_NAMES.includes(path.posix.basename(servedPath))) return false;
     return !EXCLUDE_PATTERNS.some((pattern) => pattern.test(servedPath));
 }
 

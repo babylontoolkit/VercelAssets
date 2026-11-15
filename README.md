@@ -50,9 +50,11 @@ the network exactly as before.
   removes its worker) unless `NEXT_PUBLIC_CONTENT_INSTALLER_LOCALHOST=on`, so a dev session behaves exactly as before.
 * **The worker and the app shell.** `npm run dev` and `npm run build` first copy `bt-content-worker.js` from
   `@babylonjs-toolkit/next` into `public/` (`scripts/content-installer-build.mjs worker`, the `predev` / `prebuild`
-  steps); after a build, `postbuild` writes `public/bt-shell-manifest.json` (every file of `.next/static/` under
-  `/_next/static/`, every public file and the prerendered Home page as `index.html`, each with its SHA-256), so an
-  installed app also launches offline into Home. Both files are generated and git-ignored. `next.config.ts` serves the
+  steps); after a build, `postbuild` checks that every served file name is lowercase
+  (`scripts/lowercase-output-check.mjs`), then writes `public/bt-shell-manifest.json` (every file of `.next/static/` under
+  `/_next/static/` except Next.js's `_buildManifest.js` and `_ssgManifest.js`, which App Router pages never request,
+  every public file and the prerendered Home page as `index.html`, each with its SHA-256), so an installed app also
+  launches offline into Home. Both files are generated and git-ignored. `next.config.ts` serves the
   worker and the shell manifest `Cache-Control: no-cache`, the web app manifest as `application/manifest+json`, and
   `/index.html` as Home (the shell's offline page). A `next dev` session serves the worker but has no shell manifest.
   Offline (no app server), the installed app opens on Home: the worker answers every offline navigation with that one

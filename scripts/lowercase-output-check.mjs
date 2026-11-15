@@ -7,7 +7,7 @@
  * page still asks for the old name, and a case-sensitive host would answer 403 or 404 for it.
  * `next.config.ts` keeps Next.js's own output lowercase (a lowercase hex build id, lowercase media file names; chunk
  * names already are). Next.js's fixed `_buildManifest.js` and `_ssgManifest.js` are allowed: App Router pages never
- * request them. Run from the project root.
+ * request them, and the shell manifest leaves them out, so nothing ever asks for them by name. Run from the project root.
  */
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
