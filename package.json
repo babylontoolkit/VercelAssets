@@ -7,7 +7,7 @@
     "dev": "next dev --webpack",
     "prebuild": "node scripts/content-installer-build.mjs worker",
     "build": "next build --webpack",
-    "postbuild": "node scripts/content-installer-build.mjs shell",
+    "postbuild": "node scripts/lowercase-output-check.mjs && node scripts/content-installer-build.mjs shell",
     "start": "next start",
     "lint": "eslint"
   },

@@ -1,6 +1,6 @@
 import { AssetsManager, Scene, TransformNode } from "@babylonjs/core";
 import { SceneController, InputController, SceneManager } from "@babylonjs-toolkit/next/scenemanager";
-import { ThirdPersonPlayerController } from "@babylonjs-toolkit/next/project";
+import { ThirdPersonController } from "@babylonjs-toolkit/next";
 import GameManager from "../globals";
 
 export class PlayerControllerDemo extends SceneController {
@@ -24,12 +24,12 @@ export class PlayerControllerDemo extends SceneController {
         await SceneManager.LoadRuntimeAssets(assetsManager, [playerPrefab], ()=> {
             const player = this.scene.getNodeByName("PlayerArmature") as TransformNode;
             if (player != null) {
-                const controller = new ThirdPersonPlayerController(player, this.scene, { arrowKeyRotation: true, smoothMotionSpeed:true, smoothChangeRate: 25.0 });
-                controller.enableInput = true;
-                controller.attachCamera = true;
-                controller.moveSpeed = 5.335;
-                controller.walkSpeed = 2.0;
-                controller.jumpSpeed = 12.0;
+                const controller = new ThirdPersonController(player, this.scene, { arrowKeyRotation: true, smoothMotionSpeed:true, smoothChangeRate: 25.0 });
+                // controller.enableInput = true;
+                // controller.attachCamera = true;
+                // controller.moveSpeed = 5.335;
+                // controller.walkSpeed = 2.0;
+                // controller.jumpSpeed = 12.0;
             }
         });
     }

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { randomBytes } from "crypto";
 import path from "path";
 
 // ---------------------------------------------------------------------------
@@ -122,7 +123,39 @@ const BABYLON_PACKAGES = [
   "@babylonjs-toolkit/next",
 ] as const;
 
+// ---------------------------------------------------------------------------
+// Lowercase output. Every file the site serves has an all-lowercase path: a build that goes into a Unity project's
+// export is copied by the Babylon Toolkit exporter, which (with its Force Lower Casing option) lowercases every file
+// name it copies, so a mixed-case name would no longer match the page's request for it. Chunk names are already
+// lowercase hex; these two cover the rest, and scripts/lowercase-output-check.mjs (postbuild) fails a build that
+// still has an uppercase path.
+// ---------------------------------------------------------------------------
+
+/** Length in bytes of the random build id (written as lowercase hex). */
+const BUILD_ID_BYTE_LENGTH = 12;
+
+/**
+ * A new build id, lowercase hex (Next.js's default mixes cases, and it names the `_next/static/<build id>/` folder).
+ * @returns The build id.
+ */
+async function generateLowercaseBuildId(): Promise<string> {
+  return randomBytes(BUILD_ID_BYTE_LENGTH).toString("hex");
+}
+
+/**
+ * The output path of a media asset webpack emits (Havok's wasm, an imported font or image):
+ * `static/media/<name>.<hash>.<ext>` as Next.js names it, with the name and extension lowercase.
+ * @param pathData The asset's path data; `filename` is its source path.
+ * @returns The file name pattern.
+ */
+function lowercaseMediaFileName(pathData: { filename?: string }): string {
+  const sourceName: string = path.basename(pathData.filename ?? "asset");
+  const extension: string = path.extname(sourceName);
+  return `static/media/${path.basename(sourceName, extension).toLowerCase()}.[hash:8]${extension.toLowerCase()}`;
+}
+
 const nextConfig: NextConfig = {
+  generateBuildId: generateLowercaseBuildId,
   turbopack: {},
   // reactStrictMode: true, // Enable Strict Mode
   // output: "export",      // Enable Static Export
@@ -172,6 +205,12 @@ const nextConfig: NextConfig = {
   // the public path strings. webpack: true is set in server-classic.ts so this runs.
   webpack(config, { webpack }) {
     config.resolve.symlinks = false; // resolve from symlink path, not real path
+
+    // Media assets keep Next.js's static/media/<name>.<hash>.<ext> path, lowercase (see "Lowercase output" above).
+    config.module.generator = {
+      ...config.module.generator,
+      asset: { ...config.module.generator?.asset, filename: lowercaseMediaFileName },
+    };
 
     // WASM support required for @babylonjs/havok.
     config.experiments = {
