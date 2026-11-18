@@ -52,6 +52,12 @@ const EXCLUDE_PATTERNS = [/\.map$/];
 /** System files never listed, wherever they sit (the exporter's manifest leaves them out too, D11). */
 const ALWAYS_EXCLUDED_FILE_NAMES = [".DS_Store", "Thumbs.db"];
 /**
+ * Unity's import sidecars (`<file>.meta`, `<folder>.meta`). A build written into the Unity asset project (under `Assets/`)
+ * gets one beside every file and folder; they are editor data, never uploaded by the exporter's deploys, so listing them
+ * made every installer request hundreds of missing files (403 from S3).
+ */
+const UNITY_META_SUFFIX = ".meta";
+/**
  * Next.js's fixed build manifests, never listed: App Router pages never request them, and their mixed-case names (which
  * Next.js does not let a project change) are the only ones left in a build that is otherwise all lowercase.
  */
@@ -147,11 +153,12 @@ function listFiles(rootFolder) {
 /**
  * Tells whether a served path is listed.
  * @param {string} servedPath The path relative to the site root.
- * @returns {boolean} False for the shell manifest itself, system files and excluded patterns.
+ * @returns {boolean} False for the shell manifest itself, system files, Unity .meta files and excluded patterns.
  */
 function isListed(servedPath) {
     if (servedPath === SHELL_MANIFEST_FILE_NAME) return false;
     if (ALWAYS_EXCLUDED_FILE_NAMES.includes(path.posix.basename(servedPath))) return false;
+    if (servedPath.endsWith(UNITY_META_SUFFIX)) return false;
     if (NEXT_BUILD_MANIFEST_FILE_NAMES.includes(path.posix.basename(servedPath))) return false;
     return !EXCLUDE_PATTERNS.some((pattern) => pattern.test(servedPath));
 }
