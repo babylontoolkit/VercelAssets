@@ -12,7 +12,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@babylonjs-toolkit/next": "9.35.1501",
+    "@babylonjs-toolkit/next": "9.35.1601",
     "@babylonjs/addons": "9.35.0",
     "@babylonjs/core": "9.35.0",
     "@babylonjs/gui": "9.35.0",
