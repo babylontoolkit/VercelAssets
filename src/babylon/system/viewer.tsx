@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { AbstractEngine, Camera, DracoDecoder, Engine, FreeCamera, Nullable, Observer, Scene, Vector3, WebGPUEngine } from "@babylonjs/core";
 import { KhronosTextureContainer2 } from "@babylonjs/core/Misc/khronosTextureContainer2";
+import { ExrLoaderGlobalConfiguration } from "@babylonjs/core/Materials/Textures/Loaders/EXR/exrLoader.configuration";
 import { SceneManager } from "@babylonjs-toolkit/next/scenemanager";
 import GameManager from "../globals";
 
@@ -109,6 +110,13 @@ function BaseSceneViewer(props: BabylonjsProps & React.CanvasHTMLAttributes<HTML
           KhronosTextureContainer2.URLConfig.wasmUASTCToRGBA_SRGB = "scripts/uastc_rgba8_srgb_v2.wasm";
           KhronosTextureContainer2.URLConfig.wasmUASTCToR8_UNORM = "scripts/uastc_r8_unorm.wasm";
           KhronosTextureContainer2.URLConfig.wasmUASTCToRG8_UNORM = "scripts/uastc_rg8_unorm.wasm";
+
+          /*
+           * The EXR loader's zip decompressor (fflate 0.8.2, UMD), self-hosted in public/scripts. Babylon's default is
+           * https://unpkg.com/fflate@0.8.2, which a Discord Activity's proxy and CSP (and any offline page) block: ZIP-compressed
+           * EXRs, such as the toolkit's vertex-animation textures, then never decode and VAT models draw unanimated and huge.
+           */
+          ExrLoaderGlobalConfiguration.FFLATEUrl = "scripts/fflate.js";
 
           try {
               if (typeof navigator !== "undefined" && (navigator as any).gpu && webgpu) {
